@@ -1,9 +1,7 @@
 # Job + ATS Platform
 
-Note: make this website fully functional and dynamic.
-connect both frontend and backend with each other.
-make sure everything is working properly. data is stored and rendering from
-database. make it production ready. 
+note: don't use of supabase backend and database got it.
+Note:I want you to connect both frontend and backend. make it that website work dynamically, fully functional, working properly. don't change in the folder structure or remove backend etc just connect it okay. and use of sqlite3 database.
 
 Also wirte in readme.md, that what did you?
 how did you connect it?
