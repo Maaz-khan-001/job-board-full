@@ -1,15 +1,15 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Menu, X, Briefcase, User, LogOut } from 'lucide-react';
+import { useAuth } from '../context/AuthContext';
 
 const Navbar = () => {
   const [isOpen, setIsOpen] = useState(false);
-  const [isLoggedIn, setIsLoggedIn] = useState(false); // This would come from auth context
+  const { isAuthenticated, user, logout } = useAuth();
   const navigate = useNavigate();
 
   const handleLogout = () => {
-    // Handle logout logic
-    setIsLoggedIn(false);
+    logout();
     navigate('/');
   };
 
@@ -33,13 +33,19 @@ const Navbar = () => {
               Companies
             </Link>
             
-            {isLoggedIn ? (
+            {isAuthenticated ? (
               <div className="flex items-center space-x-4">
-                <Link to="/candidate/dashboard" className="text-gray-700 hover:text-primary-600 transition-colors">
+                  to={user?.profile?.user_type === 'employer' ? '/employer/dashboard' : '/candidate/dashboard'}
+                  to={user?.profile?.user_type === 'employer' ? '/employer/dashboard' : '/candidate/dashboard'} 
+                  className="text-gray-700 hover:text-primary-600 transition-colors"
+                >
                   Dashboard
                 </Link>
                 <div className="flex items-center space-x-2">
                   <User className="h-5 w-5 text-gray-600" />
+                  <span className="text-sm text-gray-600">
+                    {user?.first_name} {user?.last_name}
+                  </span>
                   <button
                     onClick={handleLogout}
                     className="text-gray-700 hover:text-red-600 transition-colors flex items-center space-x-1"

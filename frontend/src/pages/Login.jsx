@@ -1,8 +1,10 @@
 import React, { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { Eye, EyeOff, LogIn } from 'lucide-react';
+import { useAuth } from '../context/AuthContext';
 
 const Login = () => {
+  const { login } = useAuth();
   const [formData, setFormData] = useState({
     username: '',
     password: ''
@@ -11,6 +13,9 @@ const Login = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const navigate = useNavigate();
+  const location = useLocation();
+  
+  const from = location.state?.from?.pathname || '/';
 
   const handleChange = (e) => {
     setFormData({
@@ -25,17 +30,23 @@ const Login = () => {
     setError('');
 
     try {
-      // API call would go here
-      console.log('Login attempt:', formData);
+      const result = await login(formData);
       
-      // Mock success - redirect to dashboard
-      setTimeout(() => {
+      if (result.success) {
+        // Redirect based on user type
+        const userType = result.user.profile?.user_type;
+        if (userType === 'employer') {
+          navigate('/employer/dashboard');
+        } else {
+          navigate('/candidate/dashboard');
+        }
+      } else {
+        setError(result.error);
         setLoading(false);
-        navigate('/candidate/dashboard');
-      }, 1000);
+      }
       
     } catch (err) {
-      setError('Invalid credentials. Please try again.');
+      setError('An unexpected error occurred. Please try again.');
       setLoading(false);
     }
   };

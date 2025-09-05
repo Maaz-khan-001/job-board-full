@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Search, Filter, MapPin, Briefcase } from 'lucide-react';
 import JobCard from '../components/JobCard';
+import { jobsAPI } from '../utils/api';
 
 const Home = () => {
   const [jobs, setJobs] = useState([]);
@@ -9,55 +10,23 @@ const Home = () => {
   const [typeFilter, setTypeFilter] = useState('');
   const [loading, setLoading] = useState(false);
 
-  // Mock data for demonstration
-  const mockJobs = [
-    {
-      id: 1,
-      title: 'Senior Frontend Developer',
-      company: { name: 'TechCorp Inc.' },
-      description: 'We are looking for an experienced frontend developer to join our dynamic team. You will be responsible for creating amazing user experiences using React, TypeScript, and modern web technologies.',
-      location: 'New York, NY',
-      remote_allowed: true,
-      employment_type: 'full_time',
-      experience_level: 'senior',
-      salary_min: 120000,
-      salary_max: 160000,
-      status: 'active',
-      created_at: '2025-01-20T10:00:00Z'
-    },
-    {
-      id: 2,
-      title: 'Product Manager',
-      company: { name: 'Innovation Labs' },
-      description: 'Join our product team to drive the development of cutting-edge software solutions. We need someone with strong analytical skills and experience in agile methodologies.',
-      location: 'San Francisco, CA',
-      remote_allowed: false,
-      employment_type: 'full_time',
-      experience_level: 'mid',
-      salary_min: 100000,
-      salary_max: 140000,
-      status: 'active',
-      created_at: '2025-01-19T15:30:00Z'
-    },
-    {
-      id: 3,
-      title: 'Data Scientist Intern',
-      company: { name: 'DataFlow Analytics' },
-      description: 'Excellent opportunity for students to gain hands-on experience in data science, machine learning, and analytics in a fast-paced startup environment.',
-      location: 'Austin, TX',
-      remote_allowed: true,
-      employment_type: 'internship',
-      experience_level: 'entry',
-      salary_min: null,
-      salary_max: null,
-      status: 'active',
-      created_at: '2025-01-18T09:15:00Z'
-    }
-  ];
-
   useEffect(() => {
-    setJobs(mockJobs);
+    fetchJobs();
   }, []);
+
+  const fetchJobs = async () => {
+    setLoading(true);
+    try {
+      const response = await jobsAPI.getJobs({ status: 'active' });
+      setJobs(response.data.results || response.data);
+    } catch (error) {
+      console.error('Error fetching jobs:', error);
+      // Fallback to empty array if API fails
+      setJobs([]);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const filteredJobs = jobs.filter(job => {
     const matchesSearch = job.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -136,11 +105,26 @@ const Home = () => {
       </div>
 
       {/* Job Cards Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {filteredJobs.map(job => (
-          <JobCard key={job.id} job={job} />
-        ))}
-      </div>
+      {loading ? (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {[1, 2, 3, 4, 5, 6].map(i => (
+            <div key={i} className="card animate-pulse">
+              <div className="h-4 bg-gray-200 rounded w-3/4 mb-2"></div>
+              <div className="h-4 bg-gray-200 rounded w-1/2 mb-4"></div>
+              <div className="space-y-2">
+                <div className="h-3 bg-gray-200 rounded"></div>
+                <div className="h-3 bg-gray-200 rounded w-5/6"></div>
+              </div>
+            </div>
+          ))}
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {filteredJobs.map(job => (
+            <JobCard key={job.id} job={job} />
+          ))}
+        </div>
+      )}
 
       {filteredJobs.length === 0 && (
         <div className="text-center py-12">

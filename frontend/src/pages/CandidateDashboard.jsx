@@ -3,64 +3,30 @@ import {
   User, FileText, Briefcase, Calendar, 
   CheckCircle, Clock, XCircle, Eye 
 } from 'lucide-react';
+import { applicationsAPI } from '../utils/api';
+import { useAuth } from '../context/AuthContext';
 
 const CandidateDashboard = () => {
+  const { user } = useAuth();
   const [activeTab, setActiveTab] = useState('applications');
   const [applications, setApplications] = useState([]);
-  const [profile, setProfile] = useState(null);
-
-  // Mock data
-  const mockApplications = [
-    {
-      id: 1,
-      job: {
-        title: 'Senior Frontend Developer',
-        company: { name: 'TechCorp Inc.' }
-      },
-      status: 'reviewing',
-      applied_at: '2025-01-20T10:00:00Z',
-      updated_at: '2025-01-21T14:30:00Z'
-    },
-    {
-      id: 2,
-      job: {
-        title: 'Full Stack Engineer',
-        company: { name: 'StartupXYZ' }
-      },
-      status: 'interview',
-      applied_at: '2025-01-18T15:30:00Z',
-      updated_at: '2025-01-22T09:15:00Z'
-    },
-    {
-      id: 3,
-      job: {
-        title: 'React Developer',
-        company: { name: 'WebCorp' }
-      },
-      status: 'rejected',
-      applied_at: '2025-01-15T12:00:00Z',
-      updated_at: '2025-01-19T16:45:00Z'
-    }
-  ];
-
-  const mockProfile = {
-    user: {
-      first_name: 'John',
-      last_name: 'Doe',
-      email: 'john.doe@example.com'
-    },
-    user_type: 'candidate',
-    phone: '+1 (555) 123-4567',
-    location: 'New York, NY',
-    bio: 'Passionate frontend developer with 5+ years of experience building modern web applications.',
-    skills: 'React, TypeScript, Node.js, Python, AWS',
-    experience_years: 5
-  };
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    setApplications(mockApplications);
-    setProfile(mockProfile);
+    fetchApplications();
   }, []);
+
+  const fetchApplications = async () => {
+    try {
+      const response = await applicationsAPI.getApplications();
+      setApplications(response.data.results || response.data);
+    } catch (error) {
+      console.error('Error fetching applications:', error);
+      setApplications([]);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const getStatusIcon = (status) => {
     switch (status) {
@@ -107,7 +73,7 @@ const CandidateDashboard = () => {
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       <div className="mb-8">
         <h1 className="text-3xl font-bold text-gray-900">
-          Welcome back, {profile?.user?.first_name}!
+          Welcome back, {user?.first_name}!
         </h1>
         <p className="text-gray-600 mt-1">Track your applications and manage your profile</p>
       </div>
@@ -158,27 +124,41 @@ const CandidateDashboard = () => {
       {/* Tab Content */}
       {activeTab === 'applications' && (
         <div className="space-y-4">
-          {applications.map(application => (
-            <div key={application.id} className="card">
-              <div className="flex justify-between items-start">
-                <div className="flex-1">
-                  <h3 className="text-lg font-semibold text-gray-900">
-                    {application.job.title}
-                  </h3>
-                  <p className="text-gray-600">{application.job.company.name}</p>
-                  <p className="text-sm text-gray-500 mt-1">
-                    Applied on {new Date(application.applied_at).toLocaleDateString()}
-                  </p>
+          {loading ? (
+            <div className="space-y-4">
+              {[1, 2, 3].map(i => (
+                <div key={i} className="card animate-pulse">
+                  <div className="h-4 bg-gray-200 rounded w-3/4 mb-2"></div>
+                  <div className="h-4 bg-gray-200 rounded w-1/2 mb-2"></div>
+                  <div className="h-3 bg-gray-200 rounded w-1/4"></div>
                 </div>
-                <div className="flex items-center space-x-3">
-                  {getStatusIcon(application.status)}
-                  <span className={`px-3 py-1 rounded-full text-sm font-medium ${getStatusColor(application.status)}`}>
-                    {application.status.charAt(0).toUpperCase() + application.status.slice(1)}
-                  </span>
-                </div>
-              </div>
+              ))}
             </div>
-          ))}
+          ) : (
+            <>
+              {applications.map(application => (
+                <div key={application.id} className="card">
+                  <div className="flex justify-between items-start">
+                    <div className="flex-1">
+                      <h3 className="text-lg font-semibold text-gray-900">
+                        {application.job.title}
+                      </h3>
+                      <p className="text-gray-600">{application.job.company.name}</p>
+                      <p className="text-sm text-gray-500 mt-1">
+                        Applied on {new Date(application.applied_at).toLocaleDateString()}
+                      </p>
+                    </div>
+                    <div className="flex items-center space-x-3">
+                      {getStatusIcon(application.status)}
+                      <span className={`px-3 py-1 rounded-full text-sm font-medium ${getStatusColor(application.status)}`}>
+                        {application.status.charAt(0).toUpperCase() + application.status.slice(1)}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </>
+          )}
 
           {applications.length === 0 && (
             <div className="text-center py-12">
@@ -190,7 +170,7 @@ const CandidateDashboard = () => {
         </div>
       )}
 
-      {activeTab === 'profile' && profile && (
+      {activeTab === 'profile' && user && (
         <div className="card">
           <h2 className="text-xl font-semibold text-gray-900 mb-6">Profile Information</h2>
           
@@ -200,7 +180,7 @@ const CandidateDashboard = () => {
                 <label className="block text-sm font-medium text-gray-700 mb-1">First Name</label>
                 <input
                   type="text"
-                  value={profile.user.first_name}
+                  value={user.first_name || ''}
                   className="input"
                   readOnly
                 />
@@ -209,7 +189,7 @@ const CandidateDashboard = () => {
                 <label className="block text-sm font-medium text-gray-700 mb-1">Last Name</label>
                 <input
                   type="text"
-                  value={profile.user.last_name}
+                  value={user.last_name || ''}
                   className="input"
                   readOnly
                 />
@@ -220,7 +200,7 @@ const CandidateDashboard = () => {
               <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
               <input
                 type="email"
-                value={profile.user.email}
+                value={user.email || ''}
                 className="input"
                 readOnly
               />
@@ -230,7 +210,7 @@ const CandidateDashboard = () => {
               <label className="block text-sm font-medium text-gray-700 mb-1">Phone</label>
               <input
                 type="tel"
-                value={profile.phone}
+                value={user.profile?.phone || ''}
                 className="input"
                 readOnly
               />
@@ -240,7 +220,7 @@ const CandidateDashboard = () => {
               <label className="block text-sm font-medium text-gray-700 mb-1">Location</label>
               <input
                 type="text"
-                value={profile.location}
+                value={user.profile?.location || ''}
                 className="input"
                 readOnly
               />
@@ -250,7 +230,7 @@ const CandidateDashboard = () => {
               <label className="block text-sm font-medium text-gray-700 mb-1">Bio</label>
               <textarea
                 rows={4}
-                value={profile.bio}
+                value={user.profile?.bio || ''}
                 className="input"
                 readOnly
               />
@@ -260,7 +240,7 @@ const CandidateDashboard = () => {
               <label className="block text-sm font-medium text-gray-700 mb-1">Skills</label>
               <input
                 type="text"
-                value={profile.skills}
+                value={user.profile?.skills || ''}
                 className="input"
                 readOnly
               />
@@ -270,7 +250,7 @@ const CandidateDashboard = () => {
               <label className="block text-sm font-medium text-gray-700 mb-1">Years of Experience</label>
               <input
                 type="number"
-                value={profile.experience_years}
+                value={user.profile?.experience_years || 0}
                 className="input"
                 readOnly
               />

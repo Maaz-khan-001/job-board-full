@@ -1,8 +1,10 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Eye, EyeOff, UserPlus, Briefcase, Users } from 'lucide-react';
+import { useAuth } from '../context/AuthContext';
 
 const Register = () => {
+  const { register } = useAuth();
   const [formData, setFormData] = useState({
     username: '',
     email: '',
@@ -37,17 +39,28 @@ const Register = () => {
     }
 
     try {
-      // API call would go here
-      console.log('Registration attempt:', formData);
+      const result = await register(formData);
       
-      // Mock success - redirect to dashboard
-      setTimeout(() => {
+      if (result.success) {
+        // Redirect based on user type
+        if (formData.user_type === 'employer') {
+          navigate('/employer/dashboard');
+        } else {
+          navigate('/candidate/dashboard');
+        }
+      } else {
+        if (typeof result.error === 'object') {
+          // Handle field-specific errors
+          const errorMessages = Object.values(result.error).flat();
+          setError(errorMessages.join('. '));
+        } else {
+          setError(result.error);
+        }
         setLoading(false);
-        navigate('/candidate/dashboard');
-      }, 1000);
+      }
       
     } catch (err) {
-      setError('Registration failed. Please try again.');
+      setError('An unexpected error occurred. Please try again.');
       setLoading(false);
     }
   };

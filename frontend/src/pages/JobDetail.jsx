@@ -4,10 +4,13 @@ import {
   ArrowLeft, MapPin, Clock, DollarSign, Building2, 
   Calendar, Users, FileText, Send 
 } from 'lucide-react';
+import { jobsAPI, applicationsAPI } from '../utils/api';
+import { useAuth } from '../context/AuthContext';
 
 const JobDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
+  const { isAuthenticated, user } = useAuth();
   const [job, setJob] = useState(null);
   const [loading, setLoading] = useState(true);
   const [applying, setApplying] = useState(false);
@@ -17,73 +20,48 @@ const JobDetail = () => {
     resume: null
   });
 
-  // Mock job data
-  const mockJob = {
-    id: 1,
-    title: 'Senior Frontend Developer',
-    company: { 
-      name: 'TechCorp Inc.',
-      description: 'Leading technology company focused on innovative solutions.',
-      website: 'https://techcorp.com',
-      logo: null
-    },
-    description: `We are looking for an experienced frontend developer to join our dynamic team. You will be responsible for creating amazing user experiences using React, TypeScript, and modern web technologies.
-
-As a Senior Frontend Developer, you will:
-• Build and maintain scalable web applications
-• Collaborate with designers and backend developers
-• Mentor junior developers
-• Participate in code reviews and architectural decisions
-• Stay up-to-date with the latest frontend technologies`,
-    requirements: `Required Skills:
-• 5+ years of experience with React and TypeScript
-• Strong knowledge of modern CSS and responsive design
-• Experience with state management (Redux, Zustand)
-• Familiarity with testing frameworks (Jest, React Testing Library)
-• Knowledge of build tools and CI/CD processes
-
-Nice to Have:
-• Experience with Next.js
-• Knowledge of GraphQL
-• Experience with micro-frontends
-• Familiarity with design systems`,
-    location: 'New York, NY',
-    remote_allowed: true,
-    employment_type: 'full_time',
-    experience_level: 'senior',
-    salary_min: 120000,
-    salary_max: 160000,
-    status: 'active',
-    created_at: '2025-01-20T10:00:00Z',
-    deadline: '2025-02-20T23:59:59Z',
-    posted_by: { username: 'hr_manager', first_name: 'Sarah', last_name: 'Johnson' }
-  };
-
   useEffect(() => {
-    // Simulate API call
-    setTimeout(() => {
-      setJob(mockJob);
-      setLoading(false);
-    }, 500);
+    fetchJob();
   }, [id]);
+
+  const fetchJob = async () => {
+    try {
+      const response = await jobsAPI.getJob(id);
+      setJob(response.data);
+    } catch (error) {
+      console.error('Error fetching job:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleApplicationSubmit = async (e) => {
     e.preventDefault();
+    
+    if (!isAuthenticated) {
+      navigate('/login');
+      return;
+    }
+    
     setApplying(true);
 
     try {
-      // API call would go here
-      console.log('Application submitted:', applicationData);
+      const applicationPayload = {
+        job: job.id,
+        cover_letter: applicationData.cover_letter,
+        resume: applicationData.resume
+      };
       
-      setTimeout(() => {
-        setApplying(false);
-        setShowApplicationForm(false);
-        alert('Application submitted successfully!');
-      }, 1000);
+      await applicationsAPI.createApplication(applicationPayload);
+      
+      setApplying(false);
+      setShowApplicationForm(false);
+      alert('Application submitted successfully!');
       
     } catch (err) {
+      console.error('Application error:', err);
       setApplying(false);
-      alert('Failed to submit application. Please try again.');
+      alert(err.response?.data?.detail || 'Failed to submit application. Please try again.');
     }
   };
 
@@ -218,15 +196,19 @@ Nice to Have:
             <div className="text-center mb-6">
               <button
                 onClick={() => setShowApplicationForm(true)}
-                className="w-full btn btn-primary flex items-center justify-center space-x-2"
+                className={`w-full btn flex items-center justify-center space-x-2 ${
+                  isAuthenticated ? 'btn-primary' : 'btn-secondary'
+                }`}
               >
                 <Send className="h-5 w-5" />
-                <span>Apply Now</span>
+                <span>{isAuthenticated ? 'Apply Now' : 'Login to Apply'}</span>
               </button>
               
-              <p className="text-sm text-gray-500 mt-2">
-                Deadline: {new Date(job.deadline).toLocaleDateString()}
-              </p>
+              {job.deadline && (
+                <p className="text-sm text-gray-500 mt-2">
+                  Deadline: {new Date(job.deadline).toLocaleDateString()}
+                </p>
+              )}
             </div>
 
             <div className="space-y-4 text-sm">
@@ -247,7 +229,9 @@ Nice to Have:
               
               <div className="flex justify-between">
                 <span className="text-gray-600">Posted by:</span>
-                <span className="font-medium">{job.posted_by.first_name} {job.posted_by.last_name}</span>
+                <span className="font-medium">
+                  {job.posted_by?.first_name} {job.posted_by?.last_name}
+                </span>
               </div>
             </div>
           </div>

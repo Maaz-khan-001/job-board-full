@@ -3,53 +3,43 @@ import {
   Plus, Eye, Edit, Trash2, Users, 
   Briefcase, TrendingUp, Calendar 
 } from 'lucide-react';
+import { jobsAPI, applicationsAPI } from '../utils/api';
+import { useAuth } from '../context/AuthContext';
 
 const EmployerDashboard = () => {
+  const { user } = useAuth();
   const [activeTab, setActiveTab] = useState('jobs');
   const [jobs, setJobs] = useState([]);
   const [applications, setApplications] = useState([]);
-
-  // Mock data
-  const mockJobs = [
-    {
-      id: 1,
-      title: 'Senior Frontend Developer',
-      company: { name: 'TechCorp Inc.' },
-      status: 'active',
-      applications_count: 23,
-      created_at: '2025-01-20T10:00:00Z'
-    },
-    {
-      id: 2,
-      title: 'Product Manager',
-      company: { name: 'TechCorp Inc.' },
-      status: 'paused',
-      applications_count: 15,
-      created_at: '2025-01-18T15:30:00Z'
-    }
-  ];
-
-  const mockApplications = [
-    {
-      id: 1,
-      applicant: { first_name: 'John', last_name: 'Doe', email: 'john@example.com' },
-      job: { title: 'Senior Frontend Developer' },
-      status: 'pending',
-      applied_at: '2025-01-22T10:00:00Z'
-    },
-    {
-      id: 2,
-      applicant: { first_name: 'Jane', last_name: 'Smith', email: 'jane@example.com' },
-      job: { title: 'Senior Frontend Developer' },
-      status: 'reviewing',
-      applied_at: '2025-01-21T14:30:00Z'
-    }
-  ];
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    setJobs(mockJobs);
-    setApplications(mockApplications);
+    fetchJobs();
+    fetchApplications();
   }, []);
+
+  const fetchJobs = async () => {
+    try {
+      const response = await jobsAPI.getJobs();
+      // Filter jobs posted by current user if needed
+      setJobs(response.data.results || response.data);
+    } catch (error) {
+      console.error('Error fetching jobs:', error);
+      setJobs([]);
+    }
+  };
+
+  const fetchApplications = async () => {
+    try {
+      const response = await applicationsAPI.getApplications();
+      setApplications(response.data.results || response.data);
+    } catch (error) {
+      console.error('Error fetching applications:', error);
+      setApplications([]);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const stats = [
     { label: 'Active Jobs', value: jobs.filter(job => job.status === 'active').length, icon: Briefcase },
@@ -140,39 +130,53 @@ const EmployerDashboard = () => {
       {/* Tab Content */}
       {activeTab === 'jobs' && (
         <div className="space-y-4">
-          {jobs.map(job => (
-            <div key={job.id} className="card">
-              <div className="flex justify-between items-start">
-                <div className="flex-1">
-                  <h3 className="text-lg font-semibold text-gray-900">{job.title}</h3>
-                  <p className="text-gray-600">{job.company.name}</p>
-                  <p className="text-sm text-gray-500 mt-1">
-                    Posted {new Date(job.created_at).toLocaleDateString()}
-                  </p>
+          {loading ? (
+            <div className="space-y-4">
+              {[1, 2, 3].map(i => (
+                <div key={i} className="card animate-pulse">
+                  <div className="h-4 bg-gray-200 rounded w-3/4 mb-2"></div>
+                  <div className="h-4 bg-gray-200 rounded w-1/2 mb-2"></div>
+                  <div className="h-3 bg-gray-200 rounded w-1/4"></div>
                 </div>
-                <div className="flex items-center space-x-4">
-                  <div className="text-center">
-                    <p className="text-2xl font-bold text-primary-600">{job.applications_count}</p>
-                    <p className="text-xs text-gray-500">Applications</p>
-                  </div>
-                  <span className={`px-3 py-1 rounded-full text-sm font-medium ${getStatusColor(job.status)}`}>
-                    {job.status.charAt(0).toUpperCase() + job.status.slice(1)}
-                  </span>
-                  <div className="flex space-x-2">
-                    <button className="p-2 text-gray-600 hover:text-primary-600 transition-colors">
-                      <Eye className="h-5 w-5" />
-                    </button>
-                    <button className="p-2 text-gray-600 hover:text-primary-600 transition-colors">
-                      <Edit className="h-5 w-5" />
-                    </button>
-                    <button className="p-2 text-gray-600 hover:text-red-600 transition-colors">
-                      <Trash2 className="h-5 w-5" />
-                    </button>
-                  </div>
-                </div>
-              </div>
+              ))}
             </div>
-          ))}
+          ) : (
+            <>
+              {jobs.map(job => (
+                <div key={job.id} className="card">
+                  <div className="flex justify-between items-start">
+                    <div className="flex-1">
+                      <h3 className="text-lg font-semibold text-gray-900">{job.title}</h3>
+                      <p className="text-gray-600">{job.company?.name}</p>
+                      <p className="text-sm text-gray-500 mt-1">
+                        Posted {new Date(job.created_at).toLocaleDateString()}
+                      </p>
+                    </div>
+                    <div className="flex items-center space-x-4">
+                      <div className="text-center">
+                        <p className="text-2xl font-bold text-primary-600">{job.applications_count || 0}</p>
+                        <p className="text-xs text-gray-500">Applications</p>
+                      </div>
+                      <span className={`px-3 py-1 rounded-full text-sm font-medium ${getStatusColor(job.status)}`}>
+                        {job.status.charAt(0).toUpperCase() + job.status.slice(1)}
+                      </span>
+                      <div className="flex space-x-2">
+                        <button className="p-2 text-gray-600 hover:text-primary-600 transition-colors">
+                          <Eye className="h-5 w-5" />
+                        </button>
+                        <button className="p-2 text-gray-600 hover:text-primary-600 transition-colors">
+                          <Edit className="h-5 w-5" />
+                        </button>
+                        <button className="p-2 text-gray-600 hover:text-red-600 transition-colors">
+                          <Trash2 className="h-5 w-5" />
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </>
+          )}
 
           {jobs.length === 0 && (
             <div className="text-center py-12">
@@ -187,32 +191,46 @@ const EmployerDashboard = () => {
 
       {activeTab === 'applications' && (
         <div className="space-y-4">
-          {applications.map(application => (
-            <div key={application.id} className="card">
-              <div className="flex justify-between items-start">
-                <div className="flex-1">
-                  <h3 className="text-lg font-semibold text-gray-900">
-                    {application.applicant.first_name} {application.applicant.last_name}
-                  </h3>
-                  <p className="text-gray-600">{application.applicant.email}</p>
-                  <p className="text-sm font-medium text-gray-700 mt-1">
-                    Applied for: {application.job.title}
-                  </p>
-                  <p className="text-sm text-gray-500">
-                    Applied {new Date(application.applied_at).toLocaleDateString()}
-                  </p>
+          {loading ? (
+            <div className="space-y-4">
+              {[1, 2, 3].map(i => (
+                <div key={i} className="card animate-pulse">
+                  <div className="h-4 bg-gray-200 rounded w-3/4 mb-2"></div>
+                  <div className="h-4 bg-gray-200 rounded w-1/2 mb-2"></div>
+                  <div className="h-3 bg-gray-200 rounded w-1/4"></div>
                 </div>
-                <div className="flex items-center space-x-4">
-                  <span className={`px-3 py-1 rounded-full text-sm font-medium ${getStatusColor(application.status)}`}>
-                    {application.status.charAt(0).toUpperCase() + application.status.slice(1)}
-                  </span>
-                  <button className="btn btn-outline text-sm">
-                    Review Application
-                  </button>
-                </div>
-              </div>
+              ))}
             </div>
-          ))}
+          ) : (
+            <>
+              {applications.map(application => (
+                <div key={application.id} className="card">
+                  <div className="flex justify-between items-start">
+                    <div className="flex-1">
+                      <h3 className="text-lg font-semibold text-gray-900">
+                        {application.applicant?.first_name} {application.applicant?.last_name}
+                      </h3>
+                      <p className="text-gray-600">{application.applicant?.email}</p>
+                      <p className="text-sm font-medium text-gray-700 mt-1">
+                        Applied for: {application.job?.title}
+                      </p>
+                      <p className="text-sm text-gray-500">
+                        Applied {new Date(application.applied_at).toLocaleDateString()}
+                      </p>
+                    </div>
+                    <div className="flex items-center space-x-4">
+                      <span className={`px-3 py-1 rounded-full text-sm font-medium ${getStatusColor(application.status)}`}>
+                        {application.status.charAt(0).toUpperCase() + application.status.slice(1)}
+                      </span>
+                      <button className="btn btn-outline text-sm">
+                        Review Application
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </>
+          )}
 
           {applications.length === 0 && (
             <div className="text-center py-12">
